@@ -1,0 +1,27 @@
+{
+	"type": "module",
+	"name": "@externdefs/hotkeys",
+	"version": "0.1.0",
+	"description": "Lightweight and \"sensible\" keybind handler",
+	"license": "MIT",
+	"repository": {
+		"url": "https://codeberg.org/mary-ext/hotkeys"
+	},
+	"files": [
+		"dist/"
+	],
+	"exports": {
+		".": "./dist/index.js"
+	},
+	"scripts": {
+		"fmt": "prettier --cache --write .",
+		"build": "tsc --project tsconfig.build.json",
+		"test": "bun test",
+		"prepublishOnly": "rm -r dist; tsc"
+	},
+	"devDependencies": {
+		"@types/bun": "^1.1.9",
+		"prettier": "^3.3.3",
+		"typescript": "5.6.2"
+	}
+}
