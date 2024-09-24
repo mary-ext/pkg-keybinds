@@ -185,7 +185,7 @@ export const matchKeybind = (ev: KeyboardEvent, [mods, key, flags]: Keybind): bo
 
 export const createKeybindHandler = (
 	mapping: KeybindMapping,
-	preventDefault: boolean = false,
+	preventDefault: boolean = true,
 ): ((ev: KeyboardEvent) => void) => {
 	const bindings = Object.entries(mapping).map(([raw, listener]): [Keybind, KeybindListener] => {
 		return [parseKeybind(raw), listener];
