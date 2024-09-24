@@ -1,9 +1,9 @@
 {
 	"type": "module",
 	"name": "@externdefs/keybinds",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Lightweight and \"sensible\" keybind handler",
-	"license": "MIT",
+	"license": "BSD-3-Clause",
 	"repository": {
 		"url": "https://codeberg.org/mary-ext/pkg-keybinds"
 	},
