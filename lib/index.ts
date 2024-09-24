@@ -54,7 +54,7 @@ const types: Record<string, number | undefined> = {
 
 	checkbox: InhibitFlags.SPACE,
 
-	radio: InhibitFlags.ARROW,
+	radio: InhibitFlags.ARROW | InhibitFlags.SPACE,
 	range: InhibitFlags.ARROW,
 };
 
