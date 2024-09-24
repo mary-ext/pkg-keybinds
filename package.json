@@ -1,11 +1,11 @@
 {
 	"type": "module",
-	"name": "@externdefs/hotkeys",
+	"name": "@externdefs/keybinds",
 	"version": "0.1.0",
 	"description": "Lightweight and \"sensible\" keybind handler",
 	"license": "MIT",
 	"repository": {
-		"url": "https://codeberg.org/mary-ext/hotkeys"
+		"url": "https://codeberg.org/mary-ext/pkg-keybinds"
 	},
 	"files": [
 		"dist/"
