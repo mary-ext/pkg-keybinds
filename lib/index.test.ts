@@ -1,18 +1,9 @@
 import { describe, it, expect } from 'bun:test';
 
-import { KeybindFlags, parseKeybind } from './index.js';
+import { InhibitFlags, parseKeybind } from './index.js';
 
-const {
-	INHIBIT_ANCHOR: ANCHOR,
-	INHIBIT_BUTTON: BUTTON,
-	INHIBIT_CHECKBOX: CHECKBOX,
-	INHIBIT_RADIO: RADIO,
-	INHIBIT_RANGE: RANGE,
-	INHIBIT_SELECT: SELECT,
-	INHIBIT_TEXT_ACCESSORY: TEXT_ACCESSORY,
-	INHIBIT_TEXT: TEXT,
-	// @ts-expect-error
-} = KeybindFlags;
+// @ts-expect-error
+const { ARROW, ENTER, ENTER_EXTRA, SELECT, SPACE, TEXT } = InhibitFlags;
 
 describe('parseKeybind', () => {
 	describe('handles certain keybinds', () => {
@@ -20,7 +11,7 @@ describe('parseKeybind', () => {
 			// text insertion
 			['a', SELECT | TEXT],
 			['z', SELECT | TEXT],
-			['Space', ANCHOR | BUTTON | CHECKBOX | RADIO | SELECT | TEXT | TEXT_ACCESSORY],
+			['Space', SPACE | SELECT | TEXT],
 			// uppercase text insertion
 			['Shift+X', TEXT],
 			['Shift+Y', TEXT],
@@ -28,10 +19,10 @@ describe('parseKeybind', () => {
 			['Backspace', TEXT],
 			['$mod+Backspace', TEXT],
 			// per-char cursor positioning
-			['ArrowLeft', RADIO | RANGE | SELECT | TEXT],
-			['ArrowRight', RADIO | RANGE | SELECT | TEXT],
-			['ArrowUp', RADIO | RANGE | SELECT | TEXT],
-			['ArrowDown', RADIO | RANGE | SELECT | TEXT],
+			['ArrowLeft', ARROW | SELECT | TEXT],
+			['ArrowRight', ARROW | SELECT | TEXT],
+			['ArrowUp', ARROW | SELECT | TEXT],
+			['ArrowDown', ARROW | SELECT | TEXT],
 			// per-char cursor selection
 			['Shift+ArrowLeft', TEXT],
 			['Shift+ArrowRight', TEXT],
@@ -55,9 +46,9 @@ describe('parseKeybind', () => {
 			['$mod+y', TEXT],
 			['$mod+z', TEXT],
 			// enter action
-			['Enter', ANCHOR | BUTTON | TEXT_ACCESSORY],
-			['$mod+Enter', ANCHOR],
-			['$mod+Shift+Enter', ANCHOR],
+			['Enter', ENTER],
+			['$mod+Enter', ENTER_EXTRA],
+			['$mod+Shift+Enter', ENTER_EXTRA],
 		])('%s', (keybind, expected) => {
 			const [_mods, _key, flags] = parseKeybind(keybind);
 			expect(flags).toBe(expected);

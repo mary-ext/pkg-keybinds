@@ -11,57 +11,52 @@ export const ALT_GRAPH_ALIASES = IS_WINDOWS_DEVICE ? ['Alt', 'Control'] : IS_APP
 // Array of "known" key modifiers
 export const MODIFIERS = ['Alt', 'Control', 'Meta', 'Shift'];
 
-// <input> that accepts text inputs
-const INPUT_TEXT = /^[demnptuw]|ea/;
-// <input> that accepts text inputs and use Enter/Space key
-const INPUT_TEXT_ACCESSORY = /mo|ti|da|we/;
-// <input> that makes use of Enter/Space
-const INPUT_BUTTON = /^[bfi]|co|re|su/;
-// <input> that makes use of Space
-const INPUT_CHECKBOX = /x$/;
-// <input> that makes use of Arrow keys/Space
-const INPUT_RADIO = /di/;
-// <input> that makes use of Arrow keys
-const INPUT_RANGE = /ng/;
-
-// Arrow | Back
-const COMMON_MOD_SHORTCUTS = /^[acvxyz]|Ar|Ba/;
-// Arrow
-const COMMON_MODSHIFT_SHORTCUTS = /V$|Ar/;
-// Alt | Control | Escape | Meta | Tab | Enter | ScrollLock
-const STANDALONE_INPUT_EXCLUSION = /Al|Co|Es|F\d|Me|Ta|En|Sc/;
-// Alt | Control | Escape | Meta | Tab | Enter | Backspace | *Lock | Delete
-const SHIFT_KEYS_INPUT_EXCLUSION = /Al|Co|Es|F\d|Me|Ta|En|Ba|Lo|De/;
-
-// Alt | Control | Escape | Meta | Tab | Enter | Backspace | *Lock | Delete
-const STANDALONE_SELECT_EXCLUSION = /Al|Co|Es|F\d|Me|Ta|En|Ba|Lo|De/;
-
 export type KeybindListener = (ev: KeyboardEvent) => void;
 export type KeybindMapping = Record<string, KeybindListener>;
 
 export type Keybind = [mods: string[], key: string, flags: number];
 
 /** @internal */
-export const enum KeybindFlags {
+export const enum InhibitFlags {
 	// Disabled on <input type=text>
-	INHIBIT_TEXT = 1 << 0,
-	// Disabled on <input type=date>
-	INHIBIT_TEXT_ACCESSORY = 1 << 1,
-	// Disabled on <input type=submit> and <button>
-	INHIBIT_BUTTON = 1 << 2,
-	// Disabled on <input type=checkbox>
-	INHIBIT_CHECKBOX = 1 << 3,
-	// Disabled on <input type=radio>
-	INHIBIT_RADIO = 1 << 4,
-	// Disabled on <input type=range> and <input type=radio>
-	INHIBIT_RANGE = 1 << 5,
-
+	TEXT = 1 << 0,
 	// Disabled on <select>
-	INHIBIT_SELECT = 1 << 6,
+	SELECT = 1 << 1,
 
-	// Disabled on <a href>
-	INHIBIT_ANCHOR = 1 << 7,
+	// Specific keys in particular
+	ARROW = 1 << 2,
+	ENTER = 1 << 3,
+	ENTER_EXTRA = 1 << 4,
+	SPACE = 1 << 5,
 }
+
+const types: Record<string, number | undefined> = {
+	email: InhibitFlags.TEXT,
+	number: InhibitFlags.TEXT,
+	password: InhibitFlags.TEXT,
+	search: InhibitFlags.TEXT,
+	tel: InhibitFlags.TEXT,
+	text: InhibitFlags.TEXT,
+	url: InhibitFlags.TEXT,
+
+	date: InhibitFlags.TEXT | InhibitFlags.ENTER,
+	datetime: InhibitFlags.TEXT | InhibitFlags.ENTER,
+	month: InhibitFlags.TEXT | InhibitFlags.ENTER,
+	time: InhibitFlags.TEXT | InhibitFlags.ENTER,
+	week: InhibitFlags.TEXT | InhibitFlags.ENTER,
+
+	button: InhibitFlags.ENTER | InhibitFlags.SPACE,
+	color: InhibitFlags.ENTER | InhibitFlags.SPACE,
+	file: InhibitFlags.ENTER | InhibitFlags.SPACE,
+	image: InhibitFlags.ENTER | InhibitFlags.SPACE,
+	reset: InhibitFlags.ENTER | InhibitFlags.SPACE,
+	submit: InhibitFlags.ENTER | InhibitFlags.SPACE,
+
+	checkbox: InhibitFlags.SPACE,
+
+	radio: InhibitFlags.ARROW,
+	range: InhibitFlags.ARROW,
+};
 
 export const parseKeybind = (keybind: string): Keybind => {
 	const mods = keybind
@@ -80,37 +75,37 @@ export const parseKeybind = (keybind: string): Keybind => {
 	let flags = 0;
 
 	if (
-		(standalone && !STANDALONE_INPUT_EXCLUSION.test(key)) ||
-		(shiftModifierOnly && !SHIFT_KEYS_INPUT_EXCLUSION.test(key)) ||
-		(modModifierOnly && COMMON_MOD_SHORTCUTS.test(key)) ||
-		(modShiftModifierOnly && COMMON_MODSHIFT_SHORTCUTS.test(key))
+		// Alt | Control | Escape | Meta | Tab | Enter | ScrollLock
+		(standalone && !/Al|Co|Es|F\d|Me|Ta|En|Sc/.test(key)) ||
+		// Alt | Control | Escape | Meta | Tab | Enter | Backspace | *Lock | Delete
+		(shiftModifierOnly && !/Al|Co|Es|F\d|Me|Ta|En|Ba|Lo|De/.test(key)) ||
+		// Arrow* | Back
+		(modModifierOnly && /^[acvxyz]|Ar|Ba/.test(key)) ||
+		// Arrow
+		(modShiftModifierOnly && /V$|Ar/.test(key))
 	) {
-		flags |= KeybindFlags.INHIBIT_TEXT;
+		flags |= InhibitFlags.TEXT;
 	}
 
-	if (standalone && !STANDALONE_SELECT_EXCLUSION.test(key)) {
-		flags |= KeybindFlags.INHIBIT_SELECT;
+	// Alt | Control | Escape | Meta | Tab | Enter | Backspace | *Lock | Delete
+	if (standalone && !/Al|Co|Es|F\d|Me|Ta|En|Ba|Lo|De/.test(key)) {
+		flags |= InhibitFlags.SELECT;
 	}
 
 	if (standalone && /Ar/.test(key)) {
-		flags |= KeybindFlags.INHIBIT_RADIO | KeybindFlags.INHIBIT_RANGE;
+		flags |= InhibitFlags.ARROW;
 	}
 
 	if (standalone && /Sp/.test(key)) {
-		flags |=
-			KeybindFlags.INHIBIT_ANCHOR |
-			KeybindFlags.INHIBIT_BUTTON |
-			KeybindFlags.INHIBIT_CHECKBOX |
-			KeybindFlags.INHIBIT_RADIO |
-			KeybindFlags.INHIBIT_TEXT_ACCESSORY;
+		flags |= InhibitFlags.SPACE;
 	}
 
 	if (standalone && /En/.test(key)) {
-		flags |= KeybindFlags.INHIBIT_ANCHOR | KeybindFlags.INHIBIT_BUTTON | KeybindFlags.INHIBIT_TEXT_ACCESSORY;
+		flags |= InhibitFlags.ENTER;
 	}
 
 	if ((shiftModifierOnly || modModifierOnly || modShiftModifierOnly) && /En/.test(key)) {
-		flags |= KeybindFlags.INHIBIT_ANCHOR;
+		flags |= InhibitFlags.ENTER_EXTRA;
 	}
 
 	return [mods, key, flags];
@@ -128,52 +123,31 @@ export const isKeybindAllowed = (ev: KeyboardEvent, flags: number): boolean => {
 
 	if (target instanceof HTMLInputElement) {
 		const type = target.type;
-
-		if (flags & KeybindFlags.INHIBIT_TEXT && INPUT_TEXT.test(type)) {
-			return false;
-		}
-
-		if (flags & KeybindFlags.INHIBIT_TEXT_ACCESSORY && INPUT_TEXT_ACCESSORY.test(type)) {
-			return false;
-		}
-
-		if (flags & KeybindFlags.INHIBIT_BUTTON && INPUT_BUTTON.test(type)) {
-			return false;
-		}
-
-		if (flags & KeybindFlags.INHIBIT_CHECKBOX && INPUT_CHECKBOX.test(type)) {
-			return false;
-		}
-
-		if (flags & KeybindFlags.INHIBIT_RADIO && INPUT_RADIO.test(type)) {
-			return false;
-		}
-
-		if (flags & KeybindFlags.INHIBIT_RANGE && INPUT_RANGE.test(type)) {
-			return false;
-		}
-
-		return true;
+		return !((types[type] || 0) & flags);
 	}
 
 	if (target instanceof HTMLTextAreaElement) {
-		return !(flags & KeybindFlags.INHIBIT_TEXT);
+		const f = InhibitFlags.ENTER | InhibitFlags.TEXT;
+		return !(flags & f);
 	}
 
 	if (target instanceof HTMLSelectElement) {
-		return !(flags & KeybindFlags.INHIBIT_SELECT);
+		return !(flags & InhibitFlags.SELECT);
 	}
 
 	if (target instanceof HTMLButtonElement) {
-		return !(flags & KeybindFlags.INHIBIT_BUTTON);
+		const f = InhibitFlags.ENTER | InhibitFlags.SPACE;
+		return !(flags & f);
 	}
 
 	if (target instanceof HTMLAnchorElement) {
-		return !(flags & KeybindFlags.INHIBIT_ANCHOR) && target.href != '';
+		const f = InhibitFlags.ENTER | InhibitFlags.ENTER_EXTRA;
+		return !(flags & f) && target.href != '';
 	}
 
 	if (target instanceof HTMLElement && target.isContentEditable) {
-		return !(flags & KeybindFlags.INHIBIT_TEXT);
+		const f = InhibitFlags.ENTER | InhibitFlags.TEXT;
+		return !(flags & f);
 	}
 
 	return true;

@@ -19,6 +19,8 @@ const handler = createKeybindHandler({
 		// Save...
 	},
 });
+
+window.addEventListener('keydown', handler);
 ```
 
 ## "Sensible" keyboard handling
@@ -35,8 +37,13 @@ The library reserves certain keybinds for the following scenarios:
   - Cursor per-word selection (`$mod+Shift+ArrowLeft`, `$mod+Shift+ArrowRight`, ...)
   - Common text manipulation shortcuts (`$mod+a`, `$mod+v`, ...)
   - Multiline only: New line insertion (`Enter`)
+  - Date/time inputs only: Open picker UI (`Enter`)
+- `<input type=checkbox>`
+  - Tick/unticking check (`Space`)
+- `<input type=radio>` and `<input type=range>`
+  - Selection (`ArrowLeft`, `ArrowRight`)
 - `<button>` and `<input type=file>`
-  - Action trigger (`Enter`)
+  - Action trigger (`Space`, `Enter`)
 - `<a href>`
   - Link navigation (`Enter`, `$mod+Enter`, ...)
 - `<select>`
