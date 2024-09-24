@@ -11,8 +11,18 @@ export const ALT_GRAPH_ALIASES = IS_WINDOWS_DEVICE ? ['Alt', 'Control'] : IS_APP
 // Array of "known" key modifiers
 export const MODIFIERS = ['Alt', 'Control', 'Meta', 'Shift'];
 
-// Input types that makes use of Enter key to do its action
-const INPUT_ENTERABLE_TYPES = /f|ek|[^x]t|im|co/;
+// <input> that accepts text inputs
+const INPUT_TEXT = /^[demnptuw]|ea/;
+// <input> that accepts text inputs and use Enter/Space key
+const INPUT_TEXT_ACCESSORY = /mo|ti|da|we/;
+// <input> that makes use of Enter/Space
+const INPUT_BUTTON = /^[bfi]|co|re|su/;
+// <input> that makes use of Space
+const INPUT_CHECKBOX = /x$/;
+// <input> that makes use of Arrow keys/Space
+const INPUT_RADIO = /di/;
+// <input> that makes use of Arrow keys
+const INPUT_RANGE = /ng/;
 
 // Arrow | Back
 const COMMON_MOD_SHORTCUTS = /^[acvxyz]|Ar|Ba/;
@@ -33,10 +43,24 @@ export type Keybind = [mods: string[], key: string, flags: number];
 
 /** @internal */
 export const enum KeybindFlags {
-	INHIBIT_TEXT_INPUT = 1 << 0,
-	INHIBIT_ENTER = 1 << 1,
-	INHIBIT_SELECT = 1 << 2,
-	INHIBIT_ANCHOR_ENTER = 1 << 3,
+	// Disabled on <input type=text>
+	INHIBIT_TEXT = 1 << 0,
+	// Disabled on <input type=date>
+	INHIBIT_TEXT_ACCESSORY = 1 << 1,
+	// Disabled on <input type=submit> and <button>
+	INHIBIT_BUTTON = 1 << 2,
+	// Disabled on <input type=checkbox>
+	INHIBIT_CHECKBOX = 1 << 3,
+	// Disabled on <input type=radio>
+	INHIBIT_RADIO = 1 << 4,
+	// Disabled on <input type=range> and <input type=radio>
+	INHIBIT_RANGE = 1 << 5,
+
+	// Disabled on <select>
+	INHIBIT_SELECT = 1 << 6,
+
+	// Disabled on <a href>
+	INHIBIT_ANCHOR = 1 << 7,
 }
 
 export const parseKeybind = (keybind: string): Keybind => {
@@ -61,21 +85,32 @@ export const parseKeybind = (keybind: string): Keybind => {
 		(modModifierOnly && COMMON_MOD_SHORTCUTS.test(key)) ||
 		(modShiftModifierOnly && COMMON_MODSHIFT_SHORTCUTS.test(key))
 	) {
-		flags |= KeybindFlags.INHIBIT_TEXT_INPUT;
+		flags |= KeybindFlags.INHIBIT_TEXT;
 	}
 
 	if (standalone && !STANDALONE_SELECT_EXCLUSION.test(key)) {
 		flags |= KeybindFlags.INHIBIT_SELECT;
 	}
 
-	if (key == 'Enter') {
-		if (standalone) {
-			flags |= KeybindFlags.INHIBIT_ENTER;
-		}
+	if (standalone && /Ar/.test(key)) {
+		flags |= KeybindFlags.INHIBIT_RADIO | KeybindFlags.INHIBIT_RANGE;
+	}
 
-		if (standalone || shiftModifierOnly || modModifierOnly || modShiftModifierOnly) {
-			flags |= KeybindFlags.INHIBIT_ANCHOR_ENTER;
-		}
+	if (standalone && /Sp/.test(key)) {
+		flags |=
+			KeybindFlags.INHIBIT_ANCHOR |
+			KeybindFlags.INHIBIT_BUTTON |
+			KeybindFlags.INHIBIT_CHECKBOX |
+			KeybindFlags.INHIBIT_RADIO |
+			KeybindFlags.INHIBIT_TEXT_ACCESSORY;
+	}
+
+	if (standalone && /En/.test(key)) {
+		flags |= KeybindFlags.INHIBIT_ANCHOR | KeybindFlags.INHIBIT_BUTTON | KeybindFlags.INHIBIT_TEXT_ACCESSORY;
+	}
+
+	if ((shiftModifierOnly || modModifierOnly || modShiftModifierOnly) && /En/.test(key)) {
+		flags |= KeybindFlags.INHIBIT_ANCHOR;
 	}
 
 	return [mods, key, flags];
@@ -92,15 +127,37 @@ export const isKeybindAllowed = (ev: KeyboardEvent, flags: number): boolean => {
 	const target = ev.target;
 
 	if (target instanceof HTMLInputElement) {
-		if (flags & KeybindFlags.INHIBIT_ENTER) {
-			return !INPUT_ENTERABLE_TYPES.test(target.type);
+		const type = target.type;
+
+		if (flags & KeybindFlags.INHIBIT_TEXT && INPUT_TEXT.test(type)) {
+			return false;
 		}
 
-		return !(flags & KeybindFlags.INHIBIT_TEXT_INPUT);
+		if (flags & KeybindFlags.INHIBIT_TEXT_ACCESSORY && INPUT_TEXT_ACCESSORY.test(type)) {
+			return false;
+		}
+
+		if (flags & KeybindFlags.INHIBIT_BUTTON && INPUT_BUTTON.test(type)) {
+			return false;
+		}
+
+		if (flags & KeybindFlags.INHIBIT_CHECKBOX && INPUT_CHECKBOX.test(type)) {
+			return false;
+		}
+
+		if (flags & KeybindFlags.INHIBIT_RADIO && INPUT_RADIO.test(type)) {
+			return false;
+		}
+
+		if (flags & KeybindFlags.INHIBIT_RANGE && INPUT_RANGE.test(type)) {
+			return false;
+		}
+
+		return true;
 	}
 
 	if (target instanceof HTMLTextAreaElement) {
-		return !(flags & KeybindFlags.INHIBIT_TEXT_INPUT);
+		return !(flags & KeybindFlags.INHIBIT_TEXT);
 	}
 
 	if (target instanceof HTMLSelectElement) {
@@ -108,15 +165,15 @@ export const isKeybindAllowed = (ev: KeyboardEvent, flags: number): boolean => {
 	}
 
 	if (target instanceof HTMLButtonElement) {
-		return !(flags & KeybindFlags.INHIBIT_ENTER);
+		return !(flags & KeybindFlags.INHIBIT_BUTTON);
 	}
 
 	if (target instanceof HTMLAnchorElement) {
-		return !(flags & KeybindFlags.INHIBIT_ANCHOR_ENTER) && target.href != '';
+		return !(flags & KeybindFlags.INHIBIT_ANCHOR) && target.href != '';
 	}
 
 	if (target instanceof HTMLElement && target.isContentEditable) {
-		return !(flags & KeybindFlags.INHIBIT_TEXT_INPUT);
+		return !(flags & KeybindFlags.INHIBIT_TEXT);
 	}
 
 	return true;

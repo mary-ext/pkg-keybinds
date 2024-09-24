@@ -2,101 +2,65 @@ import { describe, it, expect } from 'bun:test';
 
 import { KeybindFlags, parseKeybind } from './index.js';
 
+const {
+	INHIBIT_ANCHOR: ANCHOR,
+	INHIBIT_BUTTON: BUTTON,
+	INHIBIT_CHECKBOX: CHECKBOX,
+	INHIBIT_RADIO: RADIO,
+	INHIBIT_RANGE: RANGE,
+	INHIBIT_SELECT: SELECT,
+	INHIBIT_TEXT_ACCESSORY: TEXT_ACCESSORY,
+	INHIBIT_TEXT: TEXT,
+	// @ts-expect-error
+} = KeybindFlags;
+
 describe('parseKeybind', () => {
-	describe('reserves certain keybinds on <input>', () => {
+	describe('handles certain keybinds', () => {
 		it.each([
 			// text insertion
-			['a'],
-			['z'],
+			['a', SELECT | TEXT],
+			['z', SELECT | TEXT],
+			['Space', ANCHOR | BUTTON | CHECKBOX | RADIO | SELECT | TEXT | TEXT_ACCESSORY],
 			// uppercase text insertion
-			['Shift+X'],
-			['Shift+Y'],
+			['Shift+X', TEXT],
+			['Shift+Y', TEXT],
 			// text deletion
-			['Backspace'],
-			['$mod+Backspace'],
+			['Backspace', TEXT],
+			['$mod+Backspace', TEXT],
 			// per-char cursor positioning
-			['ArrowLeft'],
-			['ArrowRight'],
-			['ArrowUp'],
-			['ArrowDown'],
+			['ArrowLeft', RADIO | RANGE | SELECT | TEXT],
+			['ArrowRight', RADIO | RANGE | SELECT | TEXT],
+			['ArrowUp', RADIO | RANGE | SELECT | TEXT],
+			['ArrowDown', RADIO | RANGE | SELECT | TEXT],
 			// per-char cursor selection
-			['Shift+ArrowLeft'],
-			['Shift+ArrowRight'],
-			['Shift+ArrowUp'],
-			['Shift+ArrowDown'],
+			['Shift+ArrowLeft', TEXT],
+			['Shift+ArrowRight', TEXT],
+			['Shift+ArrowUp', TEXT],
+			['Shift+ArrowDown', TEXT],
 			// per-word cursor positioning
-			['$mod+ArrowLeft'],
-			['$mod+ArrowRight'],
-			['$mod+ArrowUp'],
-			['$mod+ArrowDown'],
+			['$mod+ArrowLeft', TEXT],
+			['$mod+ArrowRight', TEXT],
+			['$mod+ArrowUp', TEXT],
+			['$mod+ArrowDown', TEXT],
 			// per-word cursor selection
-			['$mod+Shift+ArrowLeft'],
-			['$mod+Shift+ArrowRight'],
-			['$mod+Shift+ArrowUp'],
-			['$mod+Shift+ArrowDown'],
+			['$mod+Shift+ArrowLeft', TEXT],
+			['$mod+Shift+ArrowRight', TEXT],
+			['$mod+Shift+ArrowUp', TEXT],
+			['$mod+Shift+ArrowDown', TEXT],
 			// common text input shortcuts
-			['$mod+a'],
-			['$mod+c'],
-			['$mod+v'],
-			['$mod+x'],
-			['$mod+y'],
-			['$mod+z'],
-		])('%s', (keybind) => {
-			expect.assertions(1);
-
+			['$mod+a', TEXT],
+			['$mod+c', TEXT],
+			['$mod+v', TEXT],
+			['$mod+x', TEXT],
+			['$mod+y', TEXT],
+			['$mod+z', TEXT],
+			// enter action
+			['Enter', ANCHOR | BUTTON | TEXT_ACCESSORY],
+			['$mod+Enter', ANCHOR],
+			['$mod+Shift+Enter', ANCHOR],
+		])('%s', (keybind, expected) => {
 			const [_mods, _key, flags] = parseKeybind(keybind);
-
-			expect(flags & KeybindFlags.INHIBIT_TEXT_INPUT).toBeTruthy();
+			expect(flags).toBe(expected);
 		});
 	});
-});
-
-describe('input type regex', () => {
-	const ALL_TYPES = [
-		'button',
-		'checkbox',
-		'color',
-		'date',
-		'datetime-local',
-		'email',
-		'file',
-		'hidden',
-		'image',
-		'month',
-		'number',
-		'password',
-		'radio',
-		'range',
-		'reset',
-		'search',
-		'submit',
-		'tel',
-		'text',
-		'time',
-		'url',
-		'week',
-	];
-
-	const ENTERABLE_TYPES = [
-		'button',
-		'color',
-		'date',
-		'datetime-local',
-		'file',
-		'image',
-		'month',
-		'reset',
-		'submit',
-		'time',
-		'week',
-	];
-
-	const re = /f|ek|[^x]t|im|co/;
-	for (const type of ALL_TYPES) {
-		const pass = ENTERABLE_TYPES.includes(type);
-
-		it(`${pass ? `passes` : `fails`} on ${type}`, () => {
-			expect(re.test(type)).toBe(pass);
-		});
-	}
 });
